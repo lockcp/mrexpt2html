@@ -1,16 +1,13 @@
 #!/usr/bin/python3
 
-from sys import argv
-from operator import itemgetter
+import argparse
 from datetime import datetime
+from operator import itemgetter
 
 import jinja2
 from titlecase import titlecase
 
-
-DEBUG = True
 DATETIMESTR = ''.join([ch for ch in datetime.utcnow().isoformat()[0:19] if ch.isdigit()])
-TITLECAP = True
 
 def capitalize_title(ugly_title):
     if (all(ch.isupper() or not(ch.isalpha()) for ch in ugly_title) or
@@ -39,47 +36,76 @@ def remove_duplicate_highlights(full_highlights):
         unique_highlights.append(full_highlight)
     return unique_highlights
 
-mrexpt_filename = argv[1]
-html_filename = argv[1].replace('mrexpt', 'html')
-if DEBUG:
-    html_filename = html_filename.replace('.html', '-' + DATETIMESTR + '.html')
+def do_convert(mrexpt_filename, html_filename, debug=True, titlecap=True):
+    items = []
 
-items = []
+    with open(mrexpt_filename, 'r') as mrexpt_file:
+        lines = mrexpt_file.read().splitlines()
+        current_item = []
+        for line in lines:
+            # A line with `#` starts a new item
+            if line == '#':
+                items.append(current_item)
+                current_item = []
+            else:
+                # Each line is a field
+                current_item.append(line)
+        items.append(current_item)
 
-with open(mrexpt_filename, 'r') as mrexpt_file:
-    lines = mrexpt_file.read().splitlines()
-    current_item = []
-    for line in lines:
-        # A line with `#` starts a new item
-        if line == '#':
-            items.append(current_item)
-            current_item = []
-        else:
-            # Each line is a field
-            current_item.append(line)
-    items.append(current_item)
+    # The book name and filename is present in every highlight, so pick it up from the first
+    book_name = items[1][1] or items[1][2]
+    if debug:
+        book_name = book_name + ' - ' + DATETIMESTR
+    # The first item isn't a highlight, it's some obscure metadata, so drop it
+    items = items[1:]
 
-# The book name and filename is present in every highlight, so pick it up from the first
-book_name = items[1][1] or items[1][2]
-if DEBUG:
-    book_name = book_name + ' - ' + DATETIMESTR
-# The first item isn't a highlight, it's some obscure metadata, so drop it
-items = items[1:]
+    highlights = [
+        {
+            # No absolute location, so take the chapter number times million and add the location in the chapter
+            'location': (int(item[4]) * 1000000) + int(item[6]),
+            # Note is empty for highlights without a note
+            'note': item[11],
+            'text': fix_highlight_text(item[12]),
+        }
+        for item in items
+    ]
+    # The .mrexpt is ordered by note creation, so now that we have an approximate location sort by that
+    highlights = remove_duplicate_highlights(sorted(highlights, key=itemgetter('location')))
+    if titlecap:
+        capitalize_headings(highlights)
 
-highlights = [
-    {
-        # No absolute location, so take the chapter number times million and add the location in the chapter
-        'location': (int(item[4]) * 1000000) + int(item[6]),
-        # Note is empty for highlights without a note
-        'note': item[11],
-        'text': fix_highlight_text(item[12]),
+    render_vars = {
+        'book_name': book_name,
+        'highlights': highlights,
+        'year': DATETIMESTR[:4],
     }
-    for item in items
-]
-# The .mrexpt is ordered by note creation, so now that we have an approximate location sort by that
-highlights = remove_duplicate_highlights(sorted(highlights, key=itemgetter('location')))
-if TITLECAP:
-    capitalize_headings(highlights)
+    with open(html_filename, 'w') as html_file:
+        html_file.write(load_template().render(render_vars))
 
-with open(html_filename, 'w') as html_file:
-    html_file.write(load_template().render(**locals()))
+def boolstr(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 'on', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'off', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("input", type=str, help="input file")
+    parser.add_argument("-d", "--debug", type=boolstr, default=True,
+                        help="run in debug mode - unique file and book name")
+    parser.add_argument("-t", "--titlecap", type=boolstr, default=True,
+                        help="convert ALL CAPS headings to Title Cap")
+    return parser.parse_args()
+
+if __name__ == '__main__':
+    args = parse_args()
+    mrexpt_filename = args.input
+    html_filename = mrexpt_filename.replace('mrexpt', 'html')
+    if args.debug:
+        html_filename = html_filename.replace('.html', '-' + DATETIMESTR + '.html')
+
+    do_convert(mrexpt_filename, html_filename, debug=args.debug, titlecap=args.titlecap)
