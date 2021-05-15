@@ -5,15 +5,22 @@ from operator import itemgetter
 from datetime import datetime
 
 import jinja2
+from titlecase import titlecase
 
 
 DEBUG = True
 DATETIMESTR = ''.join([ch for ch in datetime.utcnow().isoformat()[0:19] if ch.isdigit()])
+TITLECAP = True
 
-mrexpt_filename = argv[1]
-html_filename = argv[1].replace('mrexpt', 'html')
-if DEBUG:
-    html_filename = html_filename.replace('.html', '-' + DATETIMESTR + '.html')
+def capitalize_title(ugly_title):
+    if (all(ch.isupper() or not(ch.isalpha()) for ch in ugly_title) or
+        all(ch.islower() or not(ch.isalpha()) for ch in ugly_title)):
+        return titlecase(ugly_title.title())
+
+def capitalize_headings(highlights):
+    for highlight in highlights:
+        if highlight['note'] and highlight['note'].startswith('.h'):
+            highlight['text'] = capitalize_title(highlight['text'])
 
 def load_template():
     return jinja2.Environment(loader=jinja2.FileSystemLoader(searchpath="./")).get_template("readwise.j2")
@@ -30,6 +37,11 @@ def remove_duplicate_highlights(full_highlights):
                 continue
         unique_highlights.append(full_highlight)
     return unique_highlights
+
+mrexpt_filename = argv[1]
+html_filename = argv[1].replace('mrexpt', 'html')
+if DEBUG:
+    html_filename = html_filename.replace('.html', '-' + DATETIMESTR + '.html')
 
 items = []
 
@@ -65,6 +77,8 @@ highlights = [
 ]
 # The .mrexpt is ordered by note creation, so now that we have an approximate location sort by that
 highlights = remove_duplicate_highlights(sorted(highlights, key=itemgetter('location')))
+if TITLECAP:
+    capitalize_headings(highlights)
 
 with open(html_filename, 'w') as html_file:
     html_file.write(load_template().render(**locals()))
