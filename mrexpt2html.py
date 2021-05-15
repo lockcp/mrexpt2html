@@ -3,12 +3,28 @@
 from sys import argv
 from operator import itemgetter
 from jinja2 import Template
+from datetime import datetime
+
+DEBUG = True
+DATETIMESTR = ''.join([ch for ch in datetime.utcnow().isoformat()[0:19] if ch.isdigit()])
 
 mrexpt_filename = argv[1]
 html_filename = argv[1].replace('mrexpt', 'html')
+if DEBUG:
+    html_filename = html_filename.replace('.html', '-' + DATETIMESTR + '.html')
 
 def fix_highlight_text(unfixed):
     return unfixed.replace('<BR>', '\n')
+
+def remove_duplicate_highlights(full_highlights):
+    unique_highlights = []
+    for full_highlight in full_highlights:
+        if len(unique_highlights) > 0:
+            if (unique_highlights[-1]['text'] == full_highlight['text'] and
+                unique_highlights[-1]['note'] == full_highlight['note']):
+                continue
+        unique_highlights.append(full_highlight)
+    return unique_highlights
 
 items = []
 
@@ -27,6 +43,8 @@ with open(mrexpt_filename, 'r') as mrexpt_file:
 
 # The book name and filename is present in every highlight, so pick it up from the first
 book_name = items[1][1] or items[1][2]
+if DEBUG:
+    book_name = book_name + ' - ' + DATETIMESTR
 # The first item isn't a highlight, it's some obscure metadata, so drop it
 items = items[1:]
 
@@ -41,7 +59,7 @@ highlights = [
     for item in items
 ]
 # The .mrexpt is ordered by note creation, so now that we have an approximate location sort by that
-highlights = sorted(highlights, key=itemgetter('location'))
+highlights = remove_duplicate_highlights(sorted(highlights, key=itemgetter('location')))
 
 # Template is copied from a Kindle APA export, no idea what Readwise expects so try not to change too much
 template = Template("""
