@@ -7,6 +7,9 @@ from jinja2 import Template
 mrexpt_filename = argv[1]
 html_filename = argv[1].replace('mrexpt', 'html')
 
+def fix_highlight_text(unfixed):
+    return unfixed.replace('<BR>', '\n')
+
 items = []
 
 with open(mrexpt_filename, 'r') as mrexpt_file:
@@ -33,7 +36,7 @@ highlights = [
         'location': (int(item[4]) * 1000000) + int(item[6]),
         # Note is empty for highlights without a note
         'note': item[11],
-        'text': item[12],
+        'text': fix_highlight_text(item[12]),
     }
     for item in items
 ]
@@ -210,4 +213,3 @@ Note -  Location {{highlight.location}}
 
 with open(html_filename, 'w') as html_file:
     html_file.write(template.render(**locals()))
-
