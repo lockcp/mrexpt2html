@@ -38,7 +38,8 @@ def remove_duplicate_highlights(full_highlights):
         unique_highlights.append(full_highlight)
     return unique_highlights
 
-def do_convert(mrexpt_filename, html_filename, debug=True, titlecap=True):
+def do_convert(mrexpt_filename, html_filename, debug=True, titlecap=True,
+               book_name=None, author='Unknown'):
     items = []
 
     with open(mrexpt_filename, 'r') as mrexpt_file:
@@ -54,10 +55,11 @@ def do_convert(mrexpt_filename, html_filename, debug=True, titlecap=True):
                 current_item.append(line)
         items.append(current_item)
 
-    # The book name and filename is present in every highlight, so pick it up from the first
-    book_name = items[1][1] or items[1][2]
-    if debug:
-        book_name = book_name + ' - ' + DATETIMESTR
+    if book_name is None:
+        # The book name and filename is present in every highlight, so pick it up from the first
+        book_name = items[1][1] or items[1][2]
+        if debug:
+            book_name = book_name + ' - ' + DATETIMESTR
     # The first item isn't a highlight, it's some obscure metadata, so drop it
     items = items[1:]
 
@@ -78,6 +80,7 @@ def do_convert(mrexpt_filename, html_filename, debug=True, titlecap=True):
 
     render_vars = {
         'book_name': book_name,
+        'author': author,
         'highlights': highlights,
         'year': DATETIMESTR[:4],
     }
@@ -101,6 +104,12 @@ def parse_args():
                         help="run in debug mode - unique file and book name")
     parser.add_argument("-t", "--titlecap", type=boolstr, default=True,
                         help="convert ALL CAPS headings to Title Cap")
+    parser.add_argument("-b", "--book", type=str,
+                        help="book name (override the one specified in the .mrexpt file)",
+                        default=None)
+    parser.add_argument("-a", "--author", type=str,
+                        help="name of the author(s)",
+                        default='Unknown')
     return parser.parse_args()
 
 if __name__ == '__main__':
@@ -110,4 +119,5 @@ if __name__ == '__main__':
     if args.debug:
         html_filename = html_filename.replace('.html', '-' + DATETIMESTR + '.html')
 
-    do_convert(mrexpt_filename, html_filename, debug=args.debug, titlecap=args.titlecap)
+    do_convert(mrexpt_filename, html_filename, debug=args.debug, titlecap=args.titlecap,
+               book_name=args.book, author=args.author)
