@@ -14,6 +14,8 @@ def capitalize_title(ugly_title):
         all(ch.islower() or not(ch.isalpha()) for ch in ugly_title)):
         # Title is ugly, titlecase it
         return titlecase(ugly_title)
+    else:
+        return ugly_title
 
 def capitalize_headings(highlights):
     for highlight in highlights:
