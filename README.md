@@ -34,6 +34,7 @@ Override the book name. Use the value specified instead of the book name availab
 
 **`author`**
 Specify the author(s) which isn't available in the .mrexpt file. If unspecified the author is written as 'Unknown'.
+
 ---
 
 Enjoy, let me know if there are any issues or suggestions by filing issues, and of course pull requests are very welcome. The code is public domain so you can do with it whatever you want.
