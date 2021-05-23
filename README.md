@@ -27,6 +27,13 @@ Turned on by default and converts chapter headings (highlights with notes like .
 
 `./mrexpt2html --titlecap=false my-book-highlights.mrexpt`
 
+
+**`book`**
+Override the book name. Use the value specified instead of the book name available in the .mrexpt file.
+
+
+**`author`**
+Specify the author(s) which isn't available in the .mrexpt file. If unspecified the author is written as 'Unknown'.
 ---
 
 Enjoy, let me know if there are any issues or suggestions by filing issues, and of course pull requests are very welcome. The code is public domain so you can do with it whatever you want.
