@@ -58,8 +58,8 @@ def do_convert(mrexpt_filename, html_filename, debug=True, titlecap=True,
     if book_name is None:
         # The book name and filename is present in every highlight, so pick it up from the first
         book_name = items[1][1] or items[1][2]
-        if debug:
-            book_name = book_name + ' - ' + DATETIMESTR
+    if debug:
+        book_name = book_name + ' - ' + DATETIMESTR
     # The first item isn't a highlight, it's some obscure metadata, so drop it
     items = items[1:]
 
